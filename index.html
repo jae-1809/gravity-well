@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Black Hole & Comet Simulation</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000510; font-family: sans-serif; color: white; }
+        canvas { display: block; }
+        #ui {
+            position: absolute; top: 20px; left: 20px;
+            background: rgba(0, 50, 100, 0.7);
+            padding: 15px; border-radius: 10px;
+            pointer-events: auto; user-select: none;
+        }
+        input { cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div id="ui">
+    <h2 style="margin-top:0">Simulation Controls</h2>
+    <label>Comet Speed: <input type="range" id="speed" min="0.1" max="5" step="0.1" value="1"></label>
+    <p><small>Drag to rotate view | Scroll to zoom</small></p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+    let scene, camera, renderer, blackHole, comets = [];
+    let speedFactor = 1;
+
+    function init() {
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000515);
+
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 20;
+
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Black Hole
+        const bhGeometry = new THREE.SphereGeometry(2, 32, 32);
+        const bhMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+        blackHole = new THREE.Mesh(bhGeometry, bhMaterial);
+        scene.add(blackHole);
+
+        // Light
+        const light = new THREE.PointLight(0xffffff, 1, 100);
+        scene.add(light);
+
+        // Create Comets
+        for (let i = 0; i < 20; i++) {
+            createComet();
+        }
+
+        document.getElementById('speed').addEventListener('input', (e) => speedFactor = parseFloat(e.target.value));
+        window.addEventListener('resize', onWindowResize);
+
+        animate();
+    }
+
+    function createComet() {
+        const geometry = new THREE.SphereGeometry(0.2, 8, 8);
+        const material = new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff });
+        const comet = new THREE.Mesh(geometry, material);
+        
+        comet.userData = {
+            angle: Math.random() * Math.PI * 2,
+            distance: 5 + Math.random() * 10,
+            speed: 0.01 + Math.random() * 0.02
+        };
+        
+        scene.add(comet);
+        comets.push(comet);
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+
+        comets.forEach(c => {
+            c.userData.angle += c.userData.speed * speedFactor;
+            c.position.x = Math.cos(c.userData.angle) * c.userData.distance;
+            c.position.z = Math.sin(c.userData.angle) * c.userData.distance;
+        });
+
+        renderer.render(scene, camera);
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    // Basic rotation interactivity
+    let isDragging = false;
+    window.addEventListener('mousedown', () => isDragging = true);
+    window.addEventListener('mouseup', () => isDragging = false);
+    window.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+            scene.rotation.y += e.movementX * 0.01;
+            scene.rotation.x += e.movementY * 0.01;
+        }
+    });
+
+    window.onload = init;
+</script>
+</body>
+</html>
